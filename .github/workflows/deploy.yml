@@ -12,13 +12,14 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Deploy via SFTP
-        uses: wlixcc/SFTP-Deploy-Action@v1.2.4
+      - name: Deploy via FTP
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ secrets.FTP_SERVER }}
+          server: 46.202.186.196
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
-          port: 22
-          local_path: ./project/domains/hibatullah.sch.id/public_html/*
-          remote_path: /home/u262126426/domains/hibatullah.sch.id/public_html
-          sftp_only: true
+          protocol: ftp
+          port: 21
+          local-dir: ./project/domains/hibatullah.sch.id/public_html/
+          server-dir: /public_html/
+          dangerous-clean-slate: false
