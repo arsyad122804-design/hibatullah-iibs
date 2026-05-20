@@ -1,0 +1,292 @@
+$(function () {
+  var groupColumn = 0;
+  var table = $("#Table1set").DataTable({
+    ajax: url + "pmb_api/pendaftar/get_data",
+    deferRender: true,
+    processing: true,
+    language: {
+      loadingRecords: "&nbsp;",
+      processing: "Loading...",
+    },
+
+    lengthChange: false,
+    scrollCollapse: false,
+    autoWidth: false,
+    responsive: true,
+    searching: true,
+
+    fnRowCallback: function (nRow, aData, iDisplayIndex, iDisplayIndexFull) {
+      if (aData[9] == "5") {
+        $("td", nRow).css("background-color", "#ccffa6");
+      } else if (aData[9] == "2" || aData[9] == "4") {
+        $("td", nRow).css("background-color", "#c4ffff");
+      } else if (aData[9] == "1") {
+        $("td", nRow).css("background-color", "#d4d4d4");
+      } else {
+        $("td", nRow).css("background-color", "#fff");
+      }
+    },
+    initComplete: function () {
+      this.api().columns(9).visible(false);
+    },
+    columnDefs: [{ visible: false, targets: groupColumn }],
+    order: [[groupColumn, "asc"]],
+    displayLength: 25,
+    drawCallback: function (settings) {
+      var api = this.api();
+      var rows = api.rows({ page: "current" }).nodes();
+      var last = null;
+      api
+        .column(groupColumn, { page: "current" })
+        .data()
+        .each(function (group, i) {
+          if (last !== group) {
+            $(rows)
+              .eq(i)
+              .before(
+                '<tr class="group"><td colspan="8" style="background-color:#d2d2d2; font-size:12pt"> Lembaga/Cabang : ' +
+                  group +
+                  "</td></tr>"
+              );
+
+            last = group;
+          }
+        });
+    },
+  });
+
+  $("#NmCabang_set").change(function () {
+    var cb = $(this).val();
+    var pr = $("#Periode_Chek").val();
+    if (pr === undefined) {
+      pr = null;
+    }
+    console.log(url + "pmb_api/pendaftar/get_data/" + cb + "/" + pr);
+    table.ajax
+      .url(url + "pmb_api/pendaftar/get_data/" + cb + "/" + pr)
+      .ajax.reload();
+  });
+
+  $("#Periode_Chek").change(function () {
+    var cb = $("#NmCabang_set").val();
+    var pr = $(this).val();
+    if (cb === undefined) {
+      cb = null;
+    }
+    console.log(url + "pmb_api/pendaftar/get_data/" + cb + "/" + pr);
+    table.ajax
+      .url(url + "pmb_api/pendaftar/get_data/" + cb + "/" + pr)
+      .ajax.reload();
+  });
+
+  $(document).ready(function () {
+    $(".Lembaga").select2({
+      dropdownParent: $(".FormOpenkelompok .modal-body"),
+      width: "100%",
+    });
+    $(".Pelajars").select2({
+      dropdownParent: $(".FormOpenkelompok .modal-body"),
+      width: "100%",
+    });
+    //     $(".Jenis").select2({
+    //         dropdownParent: $(".FormOpenkelompok .modal-body"),
+    //     });
+    //     $(".Murojaah").select2({
+    //         dropdownParent: $(".FormOpenkelompok .modal-body"),
+    //     });
+    //     $(".Jam_Belajar").select2({
+    //         dropdownParent: $(".FormOpenkelompok .modal-body"),
+    //     });
+    //     $(".Ruangan").select2({
+    //         dropdownParent: $(".FormOpenkelompok .modal-body"),
+    //     });
+  });
+
+  $("#NmCabang_set").select2({ width: "100%" });
+  $("#Periode_Chek").select2({ width: "100%" });
+  ///////////////////////
+  ///////////////////////
+  function NumFormat(num) {
+    return num.toString().replace(/(\d)(?=(\d{3})+(?!\d))/g, "$1.");
+  }
+  $(".NumFormat").keyup(function () {
+    var id = $(this).data("id");
+    var nominal = $(this).val();
+    if (nominal != "") {
+      var nominal_string = numeral().unformat(nominal);
+      var number = numeral(nominal_string);
+      var nominal_number = number.format("0,0");
+      $(".NS" + id).val(nominal_number);
+      $(".N" + id).val(nominal_string);
+    } else {
+      $(".NS" + id).val(0);
+      $(".N" + id).val("");
+    }
+  });
+  ///////////////////////
+  ///////////////////////
+
+  $(".openform").click(function () {
+    var opt = $(this).data("option");
+    var id = $(this).data("id");
+    var V_lembaga;
+    $.ajax({
+      url: url + "pmb_api/tes_seleksi/get_master",
+      dataType: "json",
+      beforeSend: function () {
+        $(".loader").show(0);
+        clearData();
+      },
+      error: function (x) {
+        alert("error!");
+        console.log(x.responseText);
+      },
+      success: function (data) {
+        console.log(data);
+        $(".loader").fadeOut(1000);
+      },
+    });
+  });
+
+  ////////////////////////////////////
+  ////////////////////////////////////
+  $("form").on("submit", function (e) {
+    if (!$(this).valid()) {
+      e.preventDefault();
+    } else {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      $.ajax({
+        url: $(this).attr("action"),
+        method: "POST",
+        data: $(this).serialize(),
+        dataType: "json",
+        beforeSend: function () {
+          $(".loader").show(0);
+          $(".FormOpenkelompok").modal("hide");
+        },
+        error: function (x) {
+          console.log(x.responseText);
+          alert("error!");
+        },
+        success: function (data) {
+          table.ajax.reload();
+
+          $(".loader").fadeOut(1000);
+          // console.log(data);
+          $(".event-icon").html(
+            "<i class='fa fa-" +
+              data.event.icon +
+              "'  style='color:" +
+              data.event.color +
+              "'></i>"
+          );
+          $(".event-title").html(data.event.title);
+          $(".event-body").html(data.event.description);
+          $(".event-footer").html(data.event.footer);
+          $("#Msg-Notification").modal("show");
+        },
+      });
+    }
+  });
+
+  //////////////////
+  //////////////////
+
+  $(".ReloadData").click(function () {
+    table.ajax.reload();
+  });
+
+  function clearData() {
+    $("form .Lembaga").html("");
+    $("form .JamBelajar").val("");
+    $("form .IDkelompok").val("");
+    $("form .Nama_kelompok").val("");
+    $("form .Nominal").val("");
+    $("form .NumFormat ").val("");
+    $(".NumFormat").prop("disabled", false);
+  }
+
+  function NewDataPelajar(id) {
+    var newtable = $("#Table2set").DataTable({
+      destroy: true,
+      ajax: {
+        url: url + "pmb_api/pendaftar/get_data_pelajar",
+        method: "POST",
+        data: {
+          id: id,
+        },
+        dataType: "json",
+      },
+      deferRender: true,
+      processing: true,
+      language: {
+        loadingRecords: "&nbsp;",
+        processing: "Loading...",
+      },
+
+      lengthChange: false,
+      scrollCollapse: false,
+      autoWidth: false,
+      responsive: true,
+      searching: true,
+      paging: true,
+    });
+
+    return newtable;
+  }
+
+  $(".ChekZiyadah").click(function () {
+    var jf = $(".JamZiyadah2").val();
+    var js = $(".JamZiyadah1").val();
+    var zy = $(".Ziyadah").val();
+    var ru = $(".Ruangan").val();
+    $(".Info0").html("");
+    $(".Info1").html("");
+    $(".Info2").html("");
+    $(".Info3").html("");
+    $(".Info4").html("");
+    $(".Info5").html("");
+
+    // console.log(ru);
+    if (ru === "") {
+      $(".Ruangan").focus();
+      $(".Info0").html("Data ini wajib!");
+      $(".JamZiyadah2").val("");
+      $(".JamZiyadah1").val("");
+    } else if (zy === "") {
+      $(".Ziyadah").focus();
+      $(".Info1").html("Data ini wajib!");
+      $(".JamZiyadah2").val("");
+      $(".JamZiyadah1").val("");
+    } else if (js === "") {
+      $(".Info2").html("Data jam wajib!");
+    } else if (js > jf) {
+      $(".Info2").html("Data jam tidak valid!");
+    } else {
+      $.ajax({
+        url: url + "pmb_api/pendaftar/cekkelompokziyadah",
+        method: "POST",
+        data: {
+          ru: ru,
+          zy: zy,
+          js: js,
+          jf: jf,
+        },
+        dataType: "json",
+        error: function () {
+          alert("error!");
+        },
+        success: function (data) {
+          $(".event-icon").html();
+          $(".event-title").html(data.title + "<hr>");
+          $(".event-body").html(data.body);
+          $(".event-footer").html(
+            '<button type="button" class="btn btn-sm btn-secondary text-center" data-dismiss="modal">OK</button>'
+          );
+          $("#Msg-Notification").modal("show");
+        },
+      });
+    }
+  });
+});
